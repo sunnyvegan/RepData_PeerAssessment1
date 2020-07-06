@@ -1,0 +1,88 @@
+---
+title: "Reproducible Research Assignment 1"
+author: "Sunita Patil"
+date: "7/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Activity Data
+Personal acitivty data was collected at 5 minute intervals for months of October & November 2012 using activity monitoring devices. 
+The data was downloaded from Coursera's Reproducible Research course and analyzed.
+
+```{r load data, echo=TRUE}
+url<-"https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+download.file(url, destfile = "activity", method = "curl")
+unzip("activity")
+activity<-read.csv("activity.csv")
+```
+
+##Plot of total number of steps taken each day
+```{r dplyr load, echo=FALSE}
+library(dplyr)
+```
+```{r plot1, echo=TRUE}
+TotalDailySteps<-activity %>% group_by(date) %>% summarise(TotalDailySteps=sum(steps))
+hist(TotalDailySteps$TotalDailySteps, col = "blue", xlab="Total daily steps", ylab="frequency", main="Total daily steps")
+```
+
+## Mean & median steps taken each day
+```{r summary statistics}
+MeanSteps<-activity %>% group_by(date) %>% summarise(MeanDailySteps=mean(steps, na.rm=TRUE))
+print(MeanSteps)
+MedianSteps<-activity %>% group_by(date) %>% summarise(MedianDailySteps=median(steps))
+print(MedianSteps)
+```
+## Time series plot of average number of steps taken
+```{r plot2}
+AverageStepsPerInterval<-activity %>% group_by(interval) %>% summarise(AverageSteps=mean(steps, na.rm=TRUE))
+plot(AverageStepsPerInterval$interval, AverageStepsPerInterval$AverageSteps, xlab="5 min interval", ylab="Average Steps per Interval", type="l", col="blue")
+```
+
+## Time interval with maximum number of steps
+```{r}
+print(AverageStepsPerInterval[AverageStepsPerInterval$AverageSteps==max(AverageStepsPerInterval$AverageSteps),]$interval)
+```
+
+## Imputing missing data
+Missing values indicated by NAs were replaced by average steps taken for the corresponding 5 min interval
+```{r}
+for (i in 1:nrow(activity)){
+   if(is.na(activity$steps[i])){
+     x<-activity$interval[i]
+    activity$steps[i]<-AverageStepsPerInterval[AverageStepsPerInterval$interval==x,]$AverageSteps
+    }
+}
+sum(is.na(activity$steps))
+```
+
+## Histogram showing total number of steps taken each day after imputing missing values.
+```{r plot3}
+TotalDailySteps<-activity %>% group_by(date) %>% summarise(TotalDailySteps=sum(steps))
+hist(TotalDailySteps$TotalDailySteps, col = "blue", xlab="Total daily steps", ylab="frequency", main="Total daily steps")
+```
+
+## Panel plot comparing weekend activity to weekdays activity
+```{r plot4}
+activity$date<-as.Date(activity$date)
+activity$weekdays<-weekdays(activity$date, abbreviate = FALSE)
+WeekdayData<-activity[activity$weekdays=="Monday" | activity$weekdays=="Tuesday" | activity$weekdays=="Wednesday" |activity$weekdays=="Thursday" | activity$weekdays=="Friday", ]
+WeekendData<-activity[activity$weekdays=="Sunday" | activity$weekdays=="Saturday", ]
+AvgWeekdayStepsPerInterval<-WeekdayData %>% group_by(interval) %>% summarise(AvgSteps=mean(steps))
+AvgWeekendStepsPerInterval<-WeekendData %>% group_by(interval) %>% summarise(AvgSteps=mean(steps))
+
+par(mfrow=c(2,1))
+par(mar=c(2,2,2,2))
+plot(AvgWeekdayStepsPerInterval$interval, AvgWeekdayStepsPerInterval$AvgSteps, type ="l", xlab="Interval", ylab="Number of steps", main="weekday", col="blue", ylim=c(0,250))
+plot(AvgWeekendStepsPerInterval$interval, AvgWeekendStepsPerInterval$AvgSteps, type ="l", xlab="Interval", ylab="Number of steps", main="weekend", col="red", ylim=c(0,250))
+```
+
+
+
+
+
+
+
